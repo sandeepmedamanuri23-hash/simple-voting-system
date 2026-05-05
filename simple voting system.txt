@@ -1,0 +1,151 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX 100
+
+struct Candidate {
+int id;
+char name[50];
+int votes;
+};
+
+void addCandidate() {
+FILE *fp = fopen("candidates.dat", "ab");
+struct Candidate c;
+
+printf("Enter Candidate ID: ");
+scanf("%d", &c.id);
+
+printf("Enter Candidate Name: ");
+scanf(" %[^\n]", c.name);
+
+c.votes = 0;
+
+fwrite(&c, sizeof(c), 1, fp);
+fclose(fp);
+
+printf("Candidate added successfully!\n");
+}
+
+int hasVoted(int voterID) {
+FILE *fp = fopen("voters.dat", "rb");
+int id;
+
+if (fp == NULL) return 0;
+
+while (fread(&id, sizeof(int), 1, fp)) {
+if (id == voterID) {
+fclose(fp);
+return 1;
+}
+}
+
+fclose(fp);
+return 0;
+}
+
+void recordVoter(int voterID) {
+FILE *fp = fopen("voters.dat", "ab");
+fwrite(&voterID, sizeof(int), 1, fp);
+fclose(fp);
+}
+
+void castVote() {
+int voterID, candidateID;
+struct Candidate c;
+FILE *fp;
+
+printf("Enter your Voter ID: ");
+scanf("%d", &voterID);
+
+if (hasVoted(voterID)) {
+printf("You have already voted!\n");
+return;
+}
+
+fp = fopen("candidates.dat", "rb+");
+
+if (fp == NULL) {
+printf("No candidates found!\n");
+return;
+}
+
+printf("\nCandidates:\n");
+while (fread(&c, sizeof(c), 1, fp)) {
+printf("ID: %d | Name: %s\n", c.id, c.name);
+}
+
+printf("Enter Candidate ID to vote: ");
+scanf("%d", &candidateID);
+
+rewind(fp);
+
+while (fread(&c, sizeof(c), 1, fp)) {
+if (c.id == candidateID) {
+c.votes++;
+fseek(fp, -sizeof(c), SEEK_CUR);
+fwrite(&c, sizeof(c), 1, fp);
+
+recordVoter(voterID);
+printf("Vote cast successfully!\n");
+
+fclose(fp);
+return;
+}
+}
+
+printf("Invalid Candidate ID!\n");
+fclose(fp);
+}
+
+void viewResults() {
+FILE *fp = fopen("candidates.dat", "rb");
+struct Candidate c;
+
+if (fp == NULL) {
+printf("No data available!\n");
+return;
+}
+
+printf("\n--- Voting Results ---\n");
+
+while (fread(&c, sizeof(c), 1, fp)) {
+printf("Name: %s | Votes: %d\n", c.name, c.votes);
+}
+
+fclose(fp);
+}
+
+int main() {
+int choice;
+
+while (1) {
+printf("\n--- Voting System ---\n");
+printf("1. Add Candidate\n");
+printf("2. Cast Vote\n");
+printf("3. View Results\n");
+printf("4. Exit\n");
+printf("Enter choice: ");
+
+scanf("%d", &choice);
+
+switch (choice) {
+case 1:
+addCandidate();
+break;
+case 2:
+castVote();
+break;
+case 3:
+viewResults();
+break;
+case 4:
+exit(0);
+default:
+printf("Invalid choice!\n");
+}
+}
+
+return 0;
+}
